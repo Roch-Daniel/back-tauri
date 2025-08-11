@@ -14,7 +14,9 @@ export class MessagesService {
   ) {}
 
   async findAll(): Promise<MessageEntity[]> {
-    return await this.messageRepository.find();
+    return await this.messageRepository.find({
+      order: { id: 'ASC' },
+    });
   }
 
   async findOne(id: number) {
