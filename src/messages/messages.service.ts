@@ -5,22 +5,36 @@ import { CreateMessageDto } from './dto/create-message.dto';
 import { UpdateMessageDto } from './dto/update-message.dto';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
+import { UsersService } from 'src/users/users.service';
 
 @Injectable()
 export class MessagesService {
   constructor(
     @InjectRepository(MessageEntity)
     private readonly messageRepository: Repository<MessageEntity>,
+    private readonly usersService: UsersService,
   ) {}
 
   async findAll(): Promise<MessageEntity[]> {
     return await this.messageRepository.find({
-      order: { id: 'ASC' },
+      order: { id: 'DESC' },
+      relations: ['from', 'to'], // Include relations to fetch user details
+      select: {
+        from: { id: true, name: true },
+        to: { id: true, name: true },
+      },
     });
   }
 
   async findOne(id: number) {
-    const [message] = await this.messageRepository.find({ where: { id } });
+    const [message] = await this.messageRepository.find({
+      where: { id },
+      relations: ['from', 'to'],
+      select: {
+        from: { id: true, name: true },
+        to: { id: true, name: true },
+      },
+    });
 
     if (message) return message;
 
@@ -28,15 +42,29 @@ export class MessagesService {
   }
 
   async create(createMessageDto: CreateMessageDto) {
+    const { fromId, toId } = createMessageDto;
+
+    const from = await this.usersService.findOne(fromId);
+    const to = await this.usersService.findOne(toId);
+
     try {
       const newMessage = {
-        ...createMessageDto,
+        text: createMessageDto.text,
+        from,
+        to,
         read: false,
         sentAt: new Date(),
       };
       const message = this.messageRepository.create(newMessage);
       console.log('Creating message:', message);
-      return await this.messageRepository.save(message);
+      await this.messageRepository.save(message);
+      return {
+        message: {
+          ...message,
+          from: { id: message.from.id },
+          to: { id: message.to.id },
+        },
+      };
     } catch (error) {
       throw new Error(`Error creating message: ${error}`);
     }
@@ -71,7 +99,7 @@ export class MessagesService {
     return { sucess_del: true, message: { ...messageRemoved } };
   }
 
-  //Query example
+  //Query example: query/?limit=10&offset=30
   findAllQuery(pagination: any): string {
     //const {limit, offset} = pagination;
     return JSON.stringify({
