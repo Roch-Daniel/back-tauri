@@ -15,22 +15,25 @@ import { MessagesService } from './messages.service';
 import { MessageEntity } from './entities/messages.entity';
 import { CreateMessageDto } from './dto/create-message.dto';
 import { UpdateMessageDto } from './dto/update-message.dto';
+import { PaginationDto } from 'src/common/dto/pagination.dto';
 
 @Controller('messages')
 export class MessagesController {
   constructor(private readonly messagesService: MessagesService) {}
 
-  @HttpCode(200)
+  @HttpCode(HttpStatus.OK)
   @Get()
-  async findAll(): Promise<MessageEntity[]> {
-    return await this.messagesService.findAll();
+  async findAll(
+    @Query() paginationDto: PaginationDto,
+  ): Promise<MessageEntity[]> {
+    return await this.messagesService.findAll(paginationDto);
   }
 
-  @HttpCode(200)
+  /* @HttpCode(200)
   @Get('query')
   findAllQuery(@Query() pagination: any): string {
     return this.messagesService.findAllQuery(pagination);
-  }
+  } */
 
   @HttpCode(HttpStatus.OK)
   @Get(':id')
